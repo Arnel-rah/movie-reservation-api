@@ -1,0 +1,472 @@
+openapi: 3.0.3
+info:
+  title: Movie Reservation API
+  description: API for managing movie reservations, showtimes, and seats
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Auth
+    RegisterRequest:
+      type: object
+      required: [email, password, fullName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+
+    # Genre
+    GenreRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
+    GenreResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    # Movie
+    MovieRequest:
+      type: object
+      required: [title, genreId]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        posterUrl:
+          type: string
+        genreId:
+          type: integer
+
+    MovieResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        posterUrl:
+          type: string
+        genre:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Showtime
+    ShowtimeRequest:
+      type: object
+      required: [movieId, startTime, endTime, totalSeats]
+      properties:
+        movieId:
+          type: string
+          format: uuid
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        totalSeats:
+          type: integer
+
+    ShowtimeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        movieId:
+          type: string
+          format: uuid
+        movieTitle:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        totalSeats:
+          type: integer
+        availableSeats:
+          type: integer
+
+    # Seat
+    SeatResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        seatNumber:
+          type: string
+        status:
+          type: string
+          enum: [AVAILABLE, RESERVED]
+
+    # Reservation
+    ReservationRequest:
+      type: object
+      required: [seatId, showtimeId]
+      properties:
+        seatId:
+          type: string
+          format: uuid
+        showtimeId:
+          type: string
+          format: uuid
+
+    ReservationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        seatNumber:
+          type: string
+        movieTitle:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    # User
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        createdAt:
+          type: string
+          format: date-time
+
+    # Admin reporting
+    ReportResponse:
+      type: object
+      properties:
+        totalReservations:
+          type: integer
+        totalRevenue:
+          type: number
+        occupancyRate:
+          type: number
+        reservations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReservationResponse'
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: integer
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  # Auth
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '409':
+          description: Email already exists
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  # Genres
+  /genres:
+    get:
+      tags: [Genres]
+      summary: Get all genres
+      security: []
+      responses:
+        '200':
+          description: List of genres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GenreResponse'
+    post:
+      tags: [Genres]
+      summary: Create a genre (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenreRequest'
+      responses:
+        '201':
+          description: Genre created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenreResponse'
+        '403':
+          description: Forbidden
+
+  /genres/{id}:
+    delete:
+      tags: [Genres]
+      summary: Delete a genre (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Genre deleted
+        '404':
+          description: Genre not found
+
+  # Movies
+  /movies:
+    get:
+      tags: [Movies]
+      summary: Get all movies
+      security: []
+      parameters:
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of movies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MovieResponse'
+    post:
+      tags: [Movies]
+      summary: Create a movie (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieRequest'
+      responses:
+        '201':
+          description: Movie created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+
+  /movies/{id}:
+    get:
+      tags: [Movies]
+      summary: Get movie by id
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Movie found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        '404':
+          description: Movie not found
+    put:
+      tags: [Movies]
+      summary: Update a movie (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieRequest'
+      responses:
+        '200':
+          description: Movie updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+    delete:
+      tags: [Movies]
+      summary: Delete a movie (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Movie deleted
+
+  # Showtimes
+  /movies/{id}/showtimes:
+    get:
+      tags: [Showtimes]
+      summary: Get showtimes for a movie
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of showtimes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShowtimeResponse'
+    post:
+      tags: [Showtimes]
+      summary: Add a showtime to a movie (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowtimeRequest'
+      responses:
+        '201':
+          description: Showtime created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowtimeResponse'
+
+  /showtimes/{id}/seats:
