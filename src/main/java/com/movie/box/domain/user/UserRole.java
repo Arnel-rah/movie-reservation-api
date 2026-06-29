@@ -1,3 +1,6 @@
 package com.movie.box.domain.user;
 
-public class UserRole {}
+public enum UserRole {
+  USER,
+  ADMIN
+}
