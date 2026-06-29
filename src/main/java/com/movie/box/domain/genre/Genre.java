@@ -1,3 +1,5 @@
 package com.movie.box.domain.genre;
 
-public class Genre {}
+import java.util.UUID;
+
+public record Genre(UUID id, String name) {}

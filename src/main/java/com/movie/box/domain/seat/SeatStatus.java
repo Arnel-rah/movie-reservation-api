@@ -1,3 +1,6 @@
 package com.movie.box.domain.seat;
 
-public class SeatStatus {}
+public enum SeatStatus {
+  AVAILABLE,
+  RESERVED
+}
