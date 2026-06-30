@@ -1,3 +1,7 @@
 package com.movie.box.exception;
 
-public class SeatUnavailableException {}
+public class SeatUnavailableException extends RuntimeException {
+    public SeatUnavailableException(String message) {
+        super(message);
+    }
+}
